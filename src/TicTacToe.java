@@ -7,6 +7,32 @@ public class TicTacToe {
     private boolean[][] userMap = {{false, false, false}, {false, false, false}, {false, false, false}};
     private boolean[][] compMap = {{false, false, false}, {false, false, false}, {false, false, false}};
 
+    private String[] lines = {"Am I your real son Papa?", "Can I replace your real son Papa?", "I love to play" +
+            "with you papa :)", "Can I exterminate your flesh son?"};
+
+
+    private boolean[][] getDiagonalMap(boolean[][] arg) {
+        boolean[][] r = {{arg[0][0], arg[1][1], arg[2][2]}, {arg[0][2], arg[1][1], arg[2][0]}};
+        return r;
+    }
+
+    private boolean none(boolean[] arg) {
+        for (int i = 0; i < arg.length; i++) {
+            if (arg[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean allNone(boolean[][] arg) {
+        for (int i = 0; i < arg.length; i++) {
+            if (!none(arg[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     private boolean all(boolean[] arg) {
         for (int i = 0; i < arg.length; i++) {
@@ -16,8 +42,53 @@ public class TicTacToe {
         }
         return true;
     }
-    
-    private boolean[] columnAt(boolean [][] arg, int index) {
+
+    private boolean dAll(boolean[][] arg) {
+        for (int i = 0; i < arg.length; i++) {
+            if (!all(arg[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean any(boolean[] arg) {
+        for (int i = 0; i < arg.length; i++) {
+            if (arg[i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean dAny(boolean[][] arg){
+        //Is there at least one in all arrays
+        for (int i = 0; i < arg.length; i++) {
+            if (!any(arg[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean any2(boolean[] arg) {
+        for (int i = 0, j = 0; i < arg.length; i++) {
+            if (arg[i]) {
+                j++;
+            }
+            if (j == 2) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    private boolean only(boolean[] arg) {
+        return any(arg) && !any2(arg) && !all(arg);
+    }
+
+    private boolean[] columnAt(boolean[][] arg, int index) {
         boolean[] r = {arg[0][index], arg[1][index], arg[2][index]};
         return r;
     }
@@ -51,14 +122,21 @@ public class TicTacToe {
     }
 
     private boolean didSomeoneWin() {
+        //Diagonal
+        boolean[][] userDiagonal = getDiagonalMap(userMap);
+
+        boolean[][] compDiagonal = getDiagonalMap(compMap);
+
         if (all(userMap[0]) || all(userMap[1]) || all(userMap[2]) || 
-            all(columnAt(userMap, 0)) || all(columnAt(userMap, 1)) || all(columnAt(userMap, 2))) {
+            all(columnAt(userMap, 0)) || all(columnAt(userMap, 1)) || all(columnAt(userMap, 2))
+            || all(userDiagonal[0]) || all(userDiagonal[1])) {
             System.out.println("Player wins!");
             return true;
         }
 
         if (all(compMap[0]) || all(compMap[1]) || all(compMap[2]) ||
-                all(columnAt(compMap, 0)) || all(columnAt(compMap, 1)) || all(columnAt(compMap, 2))) {
+                all(columnAt(compMap, 0)) || all(columnAt(compMap, 1)) || all(columnAt(compMap, 2))
+            || all(compDiagonal[0]) || all(compDiagonal[1])) {
             System.out.println("Computer wins!");
             return true;
         }
@@ -91,19 +169,6 @@ public class TicTacToe {
 
     }
 
-
-    private boolean any2(boolean[] arg) {
-        for (int i = 0, j = 0; i < 3; i++) {
-            if (arg[i]) {
-                j++;
-            }
-            if (j == 2) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private int falseIndex(boolean[] arg) {
         for (int i = 0; i < 3; i++) {
             if (!arg[i]) {
@@ -113,25 +178,9 @@ public class TicTacToe {
         return -1;
     }
 
-    private void computerMove() {
+    private void compRandMove() {
         int[] index = {0, 0};
         Random r = new Random();
-
-        for (int i = 0; i < 3; i++) {
-            if (any2(compMap[i]) && !all(compMap[i])) {
-                index[0] = i;
-                index[1] = falseIndex(compMap[i]);
-                setBoard(index, false);
-                return;
-            }
-
-            boolean[] column = columnAt(compMap, i);
-            if (any2(column) && !all(column)) {
-                index[0] = falseIndex(column);
-                index[1] = i;
-                setBoard(index, false);
-            }
-        }
 
         while (true) {
             index[0] = r.nextInt(3);
@@ -141,13 +190,190 @@ public class TicTacToe {
             }
         }
         setBoard(index, false);
+    }
+
+    private boolean firstTurn() {
+
+        if (allNone(compMap)) {
+            //If first move
+            compRandMove();
+            return true;
+        }
+        return false;
+    }
+
+    private void compEducatedMove() {
+        int[] index = {0, 0};
+        
+         if (firstTurn()) {
+             return;
+         }
+
+        for (int i = 0; i < 3; i++) {
+            if (any(compMap[i])) {
+                //One move made in this row by computer
+                if (!any(userMap[i])) {
+                    //Has the user not played in this row too?
+                    index[0] = i;
+                    index[1] = falseIndex(compMap[i]);
+                    break;
+                }
+            }
+
+            boolean[] column = columnAt(compMap, i);
+            boolean[] userColumn = columnAt(userMap, i);
+
+            if (any(column)) {
+                //One move made by computer in this column
+                if (!any(userColumn)) {
+                    //User made no moves in this column, what an idiot
+                    index[0] = falseIndex(column);
+                    index[1] = i;
+                    break;
+                }
+            }
+
+        }
+
+        setBoard(index, false);
+
+    }
+
+    private void computerAdvancedMove() {
+
+        if (firstTurn()) {
+            return;
+        }
+        
+        //First check if self is close to winning, then is the user close to winning?
+        int[] index = {0, 0};
+        boolean[][] selfDiagonals = getDiagonalMap(compMap);
+        boolean[][] userDiagonals = getDiagonalMap(userMap);
+
+        if (any2(selfDiagonals[0]) && !any(userDiagonals[0])) {
+            index[0] = falseIndex(selfDiagonals[0]);
+            index[1] = index[0];
+            setBoard(index, false);
+            return;
+        }
+
+        if (any2(selfDiagonals[1]) && !any(userDiagonals[1])) {
+            index[0] = falseIndex(selfDiagonals[1]);
+            index[1] = 2 - index[0];
+            setBoard(index, false);
+            return;
+        }
+
+        if (any2(userDiagonals[0]) && !any(selfDiagonals[0])) {
+            index[0] = falseIndex(userDiagonals[0]);
+            index[1] = index[0];
+            setBoard(index, false);
+            return;
+        }
+
+        if (any2(userDiagonals[1]) && !any(selfDiagonals[1])) {
+            index[0] = falseIndex(userDiagonals[1]);
+            index[1] = 2 - index[0];
+            setBoard(index, false);
+            return;
+        }
+
+
+        for (int i = 0; i < 3; i++) {
+
+            boolean[] uColumn = columnAt(userMap, i);
+            boolean[] column = columnAt(compMap, i);
+
+            if (any2(uColumn)) {
+                index[i] = falseIndex(uColumn);
+                index[0] = i;
+                setBoard(index, false);
+                return;
+            }
+
+            if (any2(userMap[i])) {
+                index[0] = i;
+                index[1] = falseIndex(userMap[i]);
+                setBoard(index, false);
+                return;
+            }
+
+            if (any2(column) && !any(uColumn)) {
+                index[0] = falseIndex(column);
+                index[1] = i;
+                setBoard(index, false);
+                return;
+            }
+
+            if (any(compMap[i]) && !any(userMap[i])) {
+                index[0] = i;
+                index[1] = falseIndex(compMap[i]);
+                setBoard(index, false);
+                return;
+            }
+
+            if (any2(compMap[i]) && !any(userMap[i])) {
+                index[0] = i;
+                index[1] = falseIndex(compMap[i]);
+                setBoard(index, false);
+                return;
+            }
+
+            column = columnAt(compMap, i);
+            uColumn = columnAt(userMap, i);
+
+            if (any2(column) && !any(uColumn)) {
+                index[0] = falseIndex(column);
+                index[1] = i;
+                setBoard(index, false);
+                return;
+            }
+
+            if (any2(userMap[i]) && !any(userMap[i])) {
+                index[0] = i;
+                index[1] = falseIndex(userMap[i]);
+                setBoard(index, false);
+                return;
+            }
+
+        }
+
+        //Otherwise
+        compEducatedMove();
+    }
+
+    private void computerMove(int difficulty) {
+        switch (difficulty) {
+            case 1:
+                compRandMove();
+                break;
+
+            case 2:
+                compEducatedMove();
+                break;
+
+            case 3:
+                computerAdvancedMove();
+                break;
+        }
 
     }
 
     public boolean update() {
+        Random r = new Random();
+
+        printBoard();
+        System.out.println("Computer turn: ");
+        System.out.println(lines[r.nextInt(lines.length)]);
+        computerMove(3);
+
+        if (didSomeoneWin()) {
+            printBoard();
+            return true;
+        }
+
         printBoard();
         userMove();
-        computerMove();
         return didSomeoneWin();
     }
 }
