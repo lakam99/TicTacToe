@@ -1,4 +1,3 @@
-import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -7,12 +6,27 @@ public class TicTacToe {
     private boolean[][] userMap = {{false, false, false}, {false, false, false}, {false, false, false}};
     private boolean[][] compMap = {{false, false, false}, {false, false, false}, {false, false, false}};
 
-    private String[] lines = {"Am I your real son Papa?", "Can I replace your real son Papa?", "I love to play" +
+    private String[] lines = {"Am I your real son Papa?", "Can I replace your real son Papa?", "I love to play " +
             "with you papa :)", "Can I exterminate your flesh son?"};
+
+    private int difficulty = 0;
 
 
     private boolean[][] getDiagonalMap(boolean[][] arg) {
         boolean[][] r = {{arg[0][0], arg[1][1], arg[2][2]}, {arg[0][2], arg[1][1], arg[2][0]}};
+        return r;
+    }
+
+    private boolean[][] boolmap(String[][] arg) {
+        boolean[][] r = {{false, false, false}, {false, false, false}, {false, false, false}};
+
+        for (int i = 0; i < arg.length; i++) {
+            for (int j = 0; j < arg.length; j++) {
+                if (arg[i][j] != " ") {
+                    r[i][j] = true;
+                }
+            }
+        }
         return r;
     }
 
@@ -202,6 +216,13 @@ public class TicTacToe {
         return false;
     }
 
+    private boolean isTie() {
+        if (dAll(boolmap(board))) {
+            return true;
+        }
+        return false;
+    }
+
     private void compEducatedMove() {
         int[] index = {0, 0};
         
@@ -235,7 +256,19 @@ public class TicTacToe {
 
         }
 
-        setBoard(index, false);
+        if (positionTaken(index)) {
+            if (!isTie()) {
+                compRandMove();
+                return;
+            }
+            else {
+                System.out.println("Tie game!");
+                return;
+            }
+        }
+        else {
+            setBoard(index, false);
+        }
 
     }
 
@@ -284,14 +317,14 @@ public class TicTacToe {
             boolean[] uColumn = columnAt(userMap, i);
             boolean[] column = columnAt(compMap, i);
 
-            if (any2(uColumn)) {
-                index[i] = falseIndex(uColumn);
-                index[0] = i;
+            if (any2(uColumn) && !any(column)) {
+                index[0] = falseIndex(uColumn);
+                index[1] = i;
                 setBoard(index, false);
                 return;
             }
 
-            if (any2(userMap[i])) {
+            if (any2(userMap[i]) && !any(compMap[i])) {
                 index[0] = i;
                 index[1] = falseIndex(userMap[i]);
                 setBoard(index, false);
@@ -329,13 +362,6 @@ public class TicTacToe {
                 return;
             }
 
-            if (any2(userMap[i]) && !any(userMap[i])) {
-                index[0] = i;
-                index[1] = falseIndex(userMap[i]);
-                setBoard(index, false);
-                return;
-            }
-
         }
 
         //Otherwise
@@ -359,20 +385,37 @@ public class TicTacToe {
 
     }
 
+    public void menu() {
+        Scanner scanboi = new Scanner(System.in);
+        int in = 0;
+
+        while (true) {
+            System.out.println("Welcome to TicTacToe! Please select your difficulty: ");
+            System.out.println("1 - Easy win\n2 - Meh\n3 - Literally Impossible");
+            in = scanboi.nextInt();
+            if (between(in, 1, 3)) {
+                difficulty = in;
+                break;
+            }
+        }
+    }
+
     public boolean update() {
         Random r = new Random();
 
         printBoard();
         System.out.println("Computer turn: ");
         System.out.println(lines[r.nextInt(lines.length)]);
-        computerMove(3);
+        computerMove(difficulty);
 
-        if (didSomeoneWin()) {
+        if (didSomeoneWin() || isTie()) {
             printBoard();
             return true;
         }
 
         printBoard();
+
+
         userMove();
         return didSomeoneWin();
     }
